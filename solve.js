@@ -105,11 +105,17 @@ Array.prototype.findBasins = function () {
 
 	// Create basins based on sink locations
 	this.traverseMatrix(function (point, x, y) {
-		if (isSink(point, x, y)) { basins.push(new Basin(x, y)); }
-		else { createEdgeToLowestNeighbor(x, y); }
+		if (isSink(point, x, y)) {
+			var b = new Basin(x, y);
+			b.members.push({ x: x, y: y});
+			basins.push(b);
+		} else {
+			createEdgeToLowestNeighbor(x, y);
+		}
 	});
 
-	// Add points to a basin based on their relationship with the basin's sink
+	// Add points to a basin based on their
+	// relationship with the basin's sink
 	basins.forEach(function (basin) {
 		findConnectedEdges(edges, {
 			x: basin.sinkX,
@@ -123,8 +129,14 @@ Array.prototype.findBasins = function () {
 // Start er up
 var basins = matrix.findBasins();
 
+console.log("Sizes:");
+console.log("------------------------");
+
 // Create a processed matrix with basins denoted by numbers
-basins.forEach(function (b, i) {
+basins.sort(function (a, b) {
+	return b.members.length - a.members.length;
+}).forEach(function (b, i) {
+	console.log("Basin " + (i + 1) + " size: " + b.members.length);
 	processedMatrix[b.sinkY][b.sinkX] = i + 1;
 
 	b.members.forEach(function (member) {
@@ -132,6 +144,9 @@ basins.forEach(function (b, i) {
 	});
 });
 
+console.log(" ");
 
+console.log("Basin groups:");
+console.log("------------------------");
 // Show off
 processedMatrix.forEach(function (row) { console.log(row); });

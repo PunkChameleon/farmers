@@ -43,9 +43,10 @@ Array.prototype.findBasins = function () {
 	function eachNeighbor(x, y, fn) {
 		for (var i = -1, l = 1; i <= l; i++) {
 			for (var j = -1, k = 1; j <= k; j++) {
-				if (mtx[y+i] && mtx[y+i][x+j]) {
-					var el = mtx[y+i][x+j];
-					fn(el, x+j, y+i);
+				var coordX = x+j, coordY = y+i;
+				if (mtx[coordY]) {
+					var node = mtx[coordY][coordX];
+					if (fn) { fn(node, coordX, coordY); }
 				}
 			}
 		}
@@ -54,29 +55,32 @@ Array.prototype.findBasins = function () {
 	// Adds an edge to the edges list from x, y to that
 	// points lowest neighbor
 	function createEdgeToLowestNeighbor(x, y) {
-		var lowest;
+		var lowest = { nodeValue: matrix[y][x], x: x, y: y };
 
 		eachNeighbor(x, y, function (neighbor, nX, nY) {
-			if (!lowest || neighbor < lowest.value) {
-				lowest = { value: neighbor, x: nX, y: nY };
+			if (!lowest || neighbor < lowest.nodeValue) {
+				lowest = { nodeValue: neighbor, x: nX, y: nY };
 			}
 		});
 
 		edges.push({
 			start: { x: x, y: y },
-			end: { x: lowest.x, y: lowest.y }
+			end: {
+				x: lowest.x,
+				y: lowest.y
+			}
 		});
 	};
 
 	// Helper for returning whether or not a given value is the lowest
 	// of all it's neighbors (ie a sink)
-	function isSink(value, x, y) {
+	function isSink(nodeValue, x, y) {
 		var retVal = true;
 
 		// Loop through surrounding elements, if given point is >
 		// any of them, it's not a sink
-		eachNeighbor(x, y, function (neighbor) {
-			if (value > neighbor) { retVal = false; }
+		eachNeighbor(x, y, function (neighborValue) {
+			if (nodeValue > neighborValue) { retVal = false; }
 		});
 
 		return retVal;
@@ -85,29 +89,21 @@ Array.prototype.findBasins = function () {
 	// given a list of points, a starting point, and a basin,
 	// find points in the list that are connected to the given point,
 	// and add it to the given basin
-	function findConnectedEdges(edgeList, point, basin) {
-		edgeList.forEach(function (edge, i) {
-			if (edge.end.y === point.y &&
-				edge.end.x === point.x
-			) {
-				basin.members.push({
-					x: edge.start.x,
-					y: edge.start.y
-				});
-
-				findConnectedEdges(edgeList, {
-					x: edge.start.x,
-					y: edge.start.y
-				}, basin);
+	function findConnectedEdges(point, basin) {
+		edges.forEach(function (edge, i) {
+			if (edge.end.y === point.y && edge.end.x === point.x) {
+				var obj = { x: edge.start.x, y: edge.start.y };
+				basin.members.push(obj);
+				findConnectedEdges(obj, basin);
 			}
 		});
 	};
 
 	// Create basins based on sink locations
-	this.traverseMatrix(function (point, x, y) {
-		if (isSink(point, x, y)) {
+	this.traverseMatrix(function (node, x, y) {
+		if (isSink(node, x, y)) {
 			var b = new Basin(x, y);
-			b.members.push({ x: x, y: y});
+			b.members.push({ x: x, y: y });
 			basins.push(b);
 		} else {
 			createEdgeToLowestNeighbor(x, y);
@@ -117,17 +113,26 @@ Array.prototype.findBasins = function () {
 	// Add points to a basin based on their
 	// relationship with the basin's sink
 	basins.forEach(function (basin) {
-		findConnectedEdges(edges, {
-			x: basin.sinkX,
-			y: basin.sinkY
-		}, basin);
+		findConnectedEdges({ x: basin.sinkX, y: basin.sinkY }, basin);
 	});
 
 	return basins;
 };
 
-// Start er up
+/*
+ *
+ * Run it
+ *
+ */
+
 var basins = matrix.findBasins();
+
+
+/*
+ *
+ * Display results
+ *
+ */
 
 console.log("Sizes:");
 console.log("------------------------");
@@ -136,11 +141,12 @@ console.log("------------------------");
 basins.sort(function (a, b) {
 	return b.members.length - a.members.length;
 }).forEach(function (b, i) {
-	console.log("Basin " + (i + 1) + " size: " + b.members.length);
-	processedMatrix[b.sinkY][b.sinkX] = i + 1;
+	var j = i + 1;
+	console.log("Basin " + j + " size: " + b.members.length);
+	processedMatrix[b.sinkY][b.sinkX] = j;
 
 	b.members.forEach(function (member) {
-		processedMatrix[member.y][member.x] = i + 1;
+		processedMatrix[member.y][member.x] = j;
 	});
 });
 
@@ -148,5 +154,4 @@ console.log(" ");
 
 console.log("Basin groups:");
 console.log("------------------------");
-// Show off
 processedMatrix.forEach(function (row) { console.log(row); });

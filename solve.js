@@ -156,8 +156,16 @@ Array.prototype.findBasins = function () {
  *
  */
 
+var start = process.hrtime();
 var basins = matrix.findBasins();
+var elapsed = process.hrtime(start)[1] / 1000000;
 
+console.log( "Ran in: " +
+		process.hrtime(start)[0] +
+		"s " +
+		elapsed.toFixed(3) +
+		"ms\n"
+);
 
 /*
  *

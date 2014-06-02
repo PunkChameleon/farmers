@@ -86,7 +86,7 @@ Array.prototype.findBasins = function () {
 	// Adds an edge to the edges list from x, y to that
 	// points lowest neighbor
 	function createEdgeToLowestNeighbor(x, y) {
-		var lowest = { nodeValue: matrix[y][x], x: x, y: y };
+		var lowest = { nodeValue: mtx[y][x], x: x, y: y };
 
 		eachNeighbor(x, y, function (neighbor, nX, nY) {
 			if (!lowest || neighbor < lowest.nodeValue) {

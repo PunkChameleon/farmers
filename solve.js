@@ -11,8 +11,10 @@ var matrix = fs.readFileSync(fileName, "utf8")
 		return row.split(" ").map(function (x) { return +x; });
 	});
 
+// First line is the size of the matrix
 var size = matrix.shift()[0];
 
+// Create an empty matrix of same size as original
 for (var i = 0, l = size; i < l; i ++) {
 	processedMatrix.push([]);
 	for (var j = 0, k = size; j < k; j ++) {
@@ -27,7 +29,7 @@ function Basin(sinkX, sinkY) {
 	this.members = [];  // points that are included in this basin
 };
 
-// Helper for traversing matrix
+// Helper for traversing a 2d matrix matrix
 Array.prototype.traverseMatrix = function (fn) {
 	this.forEach(function (row, y) {
 		row.forEach(function (point, x) { fn(point, x, y); });
@@ -49,7 +51,9 @@ Array.prototype.findBasins = function () {
 		}
 	};
 
-	function createEdgeToLowestNeighbor(point, x, y) {
+	// Adds an edge to the edges list from x, y to that
+	// points lowest neighbor
+	function createEdgeToLowestNeighbor(x, y) {
 		var lowest;
 
 		eachNeighbor(x, y, function (neighbor, nX, nY) {
@@ -64,43 +68,62 @@ Array.prototype.findBasins = function () {
 		});
 	};
 
-	function isSink(point, x, y) {
+	// Helper for returning whether or not a given value is the lowest
+	// of all it's neighbors (ie a sink)
+	function isSink(value, x, y) {
 		var retVal = true;
 
 		// Loop through surrounding elements, if given point is >
 		// any of them, it's not a sink
 		eachNeighbor(x, y, function (neighbor) {
-			if (point > neighbor) { retVal = false; }
+			if (value > neighbor) { retVal = false; }
 		});
 
 		return retVal;
 	};
 
-	// Create basins based on sink locations
-	this.traverseMatrix(function (point, x, y) {
-		if (isSink(point, x, y)) { basins.push(new Basin(x, y)); }
-		else { createEdgeToLowestNeighbor(point, x, y); }
-	});
-
-	basins.forEach(function (basin) {
-		edges.forEach(function (edge) {
-			if (edge.end.y === basin.sinkY &&
-				edge.end.x === basin.sinkX
+	// given a list of points, a starting point, and a basin,
+	// find points in the list that are connected to the given point,
+	// and add it to the given basin
+	function findConnectedEdges(edgeList, point, basin) {
+		edgeList.forEach(function (edge, i) {
+			if (edge.end.y === point.y &&
+				edge.end.x === point.x
 			) {
 				basin.members.push({
 					x: edge.start.x,
 					y: edge.start.y
 				});
+
+				findConnectedEdges(edgeList, {
+					x: edge.start.x,
+					y: edge.start.y
+				}, basin);
 			}
 		});
+	};
+
+	// Create basins based on sink locations
+	this.traverseMatrix(function (point, x, y) {
+		if (isSink(point, x, y)) { basins.push(new Basin(x, y)); }
+		else { createEdgeToLowestNeighbor(x, y); }
+	});
+
+	// Add points to a basin based on their relationship with the basin's sink
+	basins.forEach(function (basin) {
+		findConnectedEdges(edges, {
+			x: basin.sinkX,
+			y: basin.sinkY
+		}, basin);
 	});
 
 	return basins;
 };
 
+// Start er up
 var basins = matrix.findBasins();
 
-// Show the matrix with basins denoted by basin number
+// Create a processed matrix with basins denoted by numbers
 basins.forEach(function (b, i) {
 	processedMatrix[b.sinkY][b.sinkX] = i + 1;
 
@@ -109,6 +132,6 @@ basins.forEach(function (b, i) {
 	});
 });
 
-processedMatrix.forEach(function (row) {
-	console.log(row);
-});
+
+// Show off
+processedMatrix.forEach(function (row) { console.log(row); });
